@@ -7,6 +7,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.stereotype.Component;
+import se.perrz.Const;
 import se.perrz.model.loan.Generator;
 import se.perrz.model.loan.LoanApplication;
 
@@ -16,7 +17,6 @@ import java.util.UUID;
 @Component
 public class Dispatcher {
 
-  private static final String TOPIC = "my-topic";
 
   private ObjectMapper mapper = new ObjectMapper();
 
@@ -35,7 +35,7 @@ public class Dispatcher {
     for (int i = 0; i < num; i++) {
       LoanApplication generated = Generator.generate();
       String val = mapper.writeValueAsString(generated);
-      producer.send(new ProducerRecord<String, String>(TOPIC, UUID.randomUUID().toString(), val));
+      producer.send(new ProducerRecord<String, String>(Const.LA_TOPIC, UUID.randomUUID().toString(), val));
     }
 
 

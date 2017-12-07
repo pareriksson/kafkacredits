@@ -1,5 +1,8 @@
 package se.perrz.model.loan;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Applicant {
 
   private String firstName;

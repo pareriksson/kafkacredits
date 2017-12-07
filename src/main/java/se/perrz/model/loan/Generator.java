@@ -1,6 +1,7 @@
 package se.perrz.model.loan;
 
 import java.util.Random;
+import java.util.UUID;
 
 public class Generator {
 
@@ -10,6 +11,7 @@ public class Generator {
 
   public static LoanApplication generate() {
     LoanApplication ret = new LoanApplication();
+    ret.setId(UUID.randomUUID().toString());
     ret.setAmount(1000 * rnd(10, 350));
     ret.setAmortazionPeriod(rnd(12, 121));
     Applicant appl = new Applicant();

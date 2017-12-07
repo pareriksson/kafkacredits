@@ -25,7 +25,7 @@ public class Application {
   public void run() {
     log.info("Emitting events");
     try {
-      dispatcher.emit(20);
+      dispatcher.emit(2);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
