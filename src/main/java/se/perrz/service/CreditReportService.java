@@ -1,6 +1,8 @@
 package se.perrz.service;
 
 import com.google.common.base.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import se.perrz.Const;
 import se.perrz.model.event.RequestCreditReportEvent;
@@ -9,6 +11,8 @@ import se.perrz.model.util.PersonKey;
 
 @Service
 public class CreditReportService {
+
+  Logger log = LoggerFactory.getLogger(CreditReportService.class);
 
   public CreditReport fetchCreditReport(String personalId) {
     Preconditions.checkNotNull(personalId);
@@ -25,6 +29,9 @@ public class CreditReportService {
     ret.setPersonKey(PersonKey.from(personalId));
     ret.setAnnualIncome(Integer.parseInt(personalId.substring(10, 11)) * 10000 * 12);
     ret.setHasPaymentRemark(personalId.substring(11, 12).equals("9"));
+
+    log.info("Credit report requested for {}", personalId);
+
     return ret;
 
   }

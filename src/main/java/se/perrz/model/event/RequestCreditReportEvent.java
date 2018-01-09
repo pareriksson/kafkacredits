@@ -13,6 +13,15 @@ public class RequestCreditReportEvent {
 
   private String forLoanAppl;
 
+  public RequestCreditReportEvent() {
+
+  }
+
+  public static RequestCreditReportEvent forPersonKey(String personKey) {
+    RequestCreditReportEvent ret = new RequestCreditReportEvent();
+    ret.setPersonKey(personKey);
+    return ret;
+  }
 
   public String getId() {
     return id;

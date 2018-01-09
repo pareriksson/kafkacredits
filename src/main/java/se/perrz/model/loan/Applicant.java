@@ -2,6 +2,10 @@ package se.perrz.model.loan;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Applicant {
 
@@ -11,7 +15,6 @@ public class Applicant {
 
   private EmploymentType employmentType;
   private String employer;
-
 
   private Integer salary;
 
@@ -69,5 +72,14 @@ public class Applicant {
   public Applicant setPersonId(String personId) {
     this.personId = personId;
     return this;
+  }
+
+  public Integer getAge() {
+    DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+    LocalDate dateOfBirth =
+        LocalDate.parse(personId.substring(0, 8), dateTimeFormatter);
+
+    return LocalDate.now().getYear() - dateOfBirth.getYear();
+
   }
 }

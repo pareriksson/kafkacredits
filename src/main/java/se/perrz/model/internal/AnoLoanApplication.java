@@ -12,6 +12,8 @@ public class AnoLoanApplication {
 
   private String personKey;
 
+  private Integer personAge;
+
   private Integer amount;
 
   private Integer amortazionPeriod;
@@ -31,6 +33,15 @@ public class AnoLoanApplication {
 
   public AnoLoanApplication setPersonKey(String personKey) {
     this.personKey = personKey;
+    return this;
+  }
+
+  public Integer getPersonAge() {
+    return personAge;
+  }
+
+  public AnoLoanApplication setPersonAge(Integer personAge) {
+    this.personAge = personAge;
     return this;
   }
 
@@ -55,7 +66,8 @@ public class AnoLoanApplication {
   public static AnoLoanApplication from(LoanApplication value) {
     AnoLoanApplication ret = new AnoLoanApplication();
     BeanUtils.copyProperties(value, ret);
-    ret.setPersonKey(PersonKey.from(value.getApplicant().getPersonId()));
+    ret.personKey = PersonKey.from(value.getApplicant().getPersonId());
+    ret.personAge = value.getApplicant().getAge();
     return ret;
   }
 }

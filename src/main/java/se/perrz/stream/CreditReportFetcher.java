@@ -6,6 +6,8 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.kstream.JoinWindows;
+import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 import org.slf4j.Logger;
@@ -13,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import se.perrz.Const;
+import se.perrz.model.event.CreditReportFetchedEvent;
 import se.perrz.model.event.RequestCreditReportEvent;
 import se.perrz.model.ext.CreditReport;
 import se.perrz.model.internal.AnoLoanApplication;
@@ -24,6 +27,8 @@ import se.perrz.stream.serde.JsonSerde;
 import se.perrz.stream.serde.KafkaStreamTypeValidator;
 
 import java.util.Properties;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class CreditReportFetcher {
@@ -42,18 +47,32 @@ public class CreditReportFetcher {
     // Konfiguration av strömmen
     /////////////////
     StreamsBuilder builder = new StreamsBuilder();
-
     KStream<String, RequestCreditReportEvent> creditEvent = KafkaStreamTypeValidator
         .validatedStream(builder, Const.REQ_CREDIT_REPORT_TOPIC, Serdes.String(), JsonSerde.from(RequestCreditReportEvent.class));
 
-    creditEvent
+    KStream<String, Applicant> persons = KafkaStreamTypeValidator
+        .validatedStream(builder, Const.PERSON_LA_TOPIC, Serdes.String(), JsonSerde.from(Applicant.class))
 
+        // Nyckla om på personKey
+        .selectKey((key1, value1) -> PersonKey.from(value1.getPersonId()));
+
+    //Key: PersonKey
+    KStream<String, CreditReport> reports = creditEvent.join(persons, (eventValue, person) -> {
+      return creditReportService.fetchCreditReport(person.getPersonId());
+    }, JoinWindows.of(TimeUnit.MINUTES.toMillis(1))
+    , Joined.with(Serdes.String(), JsonSerde.from(RequestCreditReportEvent.class), JsonSerde.from(Applicant.class)));
+
+    reports
         // Bygg om till ny ström för låneflödet
-        .map((key, value) -> KeyValue.pair(value.getPersonKey(), creditReportService.fetchCreditReport("")));
-
-        // Skicka till topic
-//        .to(Const.ANO_LA_TOPIC,
-//            Produced.with(Serdes.String(), JsonSerde.from(AnoLoanApplication.class)));
+        .mapValues((value) -> {
+          CreditReportFetchedEvent event = new CreditReportFetchedEvent();
+          event.setId(UUID.randomUUID().toString());
+          event.setPersonKey(value.getPersonKey());
+          event.setCreditReport(value);
+          event.setForLoanAppl(null);
+          return event;
+        })
+        .to(Const.RESP_CREDIT_REPORT_TOPIC, Produced.with(Serdes.String(), JsonSerde.from(CreditReportFetchedEvent.class) ));
 
 
     /////////////////
@@ -63,6 +82,7 @@ public class CreditReportFetcher {
     props.put(StreamsConfig.APPLICATION_ID_CONFIG, "CreditReportFetcher");
     props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+//    props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, JsonSerde.from(Applicant.class).getClass());
 
     new KafkaStreamsBuilder(
         new StreamsConfig(props),
@@ -71,7 +91,7 @@ public class CreditReportFetcher {
         false,
         null);
 
-    log.info("Started LoanApplicationSplitter DONE");
+    log.info("Started CreditReportFetcher DONE");
   }
 
 

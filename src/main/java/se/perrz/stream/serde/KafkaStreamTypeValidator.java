@@ -38,7 +38,7 @@ public class KafkaStreamTypeValidator<K, V> {
         builder.stream(topic, Consumed.with(Serdes.Bytes(), Serdes.Bytes()));
 
     KStream<Bytes, Bytes>[] branchedStream = incommingKStream.branch((key, value) -> {
-      log.info("Process " + value);
+      log.info("Processing ({}): {} -> {}", topic, key,  value);
       try {
         checkNotNull(key, "Key can not be null");
         checkNotNull(value, "Value can not be null");
