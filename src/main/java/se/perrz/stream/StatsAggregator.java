@@ -67,32 +67,20 @@ public class StatsAggregator {
 //        cleanUpBeforeStart,
 //        kafkaCustomerIdService::reloadViews);
 
-    log.info("Started KimIdStreamProcessor DONE");
+    log.info("Started StatsAggregator DONE");
   }
 
 
 
 
-  /**
-   * Sätter upp en stream-process som filtrerar ut relevanta events, samt bygger upp en
-   * ny ström utifrån valt ID (som key) och KIM-id (som value).
-   */
   private void setupMapStream(KStream<String, LoanApplication> eventStream) {
 
     KTable<Windowed<String>, Long> windowedPageViewCounts = eventStream
         .groupByKey(Serialized.with(Serdes.String(), laSerde))
         .windowedBy(TimeWindows.of(TimeUnit.SECONDS.toMillis(5)))
         .count();
-
-
-    // Skicka records, nu på formen <ssn/mmk-id, kim-id> till en ny topic
-//    windowedPageViewCounts.toStream().to(SUMM_TOPIC, Produced.with(Serdes.String(), Serdes.Long()));
   }
 
-  /**
-   * Skapar upp en GlobalKTable utifrån en ström på formen [ssn/mmk-id, kim-id]. Denna backas
-   * av en state-store med angivet namn.
-   */
   private void setupGlobalKTable(KStreamBuilder builder, String inputTopic, String stateStoreName) {
     builder.globalTable(
         Serdes.String(), /* key serde */

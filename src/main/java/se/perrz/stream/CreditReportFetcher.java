@@ -3,13 +3,11 @@ package se.perrz.stream;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.kstream.JoinWindows;
-import org.apache.kafka.streams.kstream.Joined;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Produced;
+import org.apache.kafka.streams.kstream.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,11 +35,13 @@ public class CreditReportFetcher {
 
   @Autowired CreditReportService creditReportService;
 
+
+
   /**
    * Sätter upp config för denna stream processor.
    */
   public CreditReportFetcher() {
-
+    JsonSerde<Applicant> applicantSerde = JsonSerde.from(Applicant.class);
     log.info("Starting CreditReportFetcher");
     /////////////////
     // Konfiguration av strömmen
@@ -50,29 +50,48 @@ public class CreditReportFetcher {
     KStream<String, RequestCreditReportEvent> creditEvent = KafkaStreamTypeValidator
         .validatedStream(builder, Const.REQ_CREDIT_REPORT_TOPIC, Serdes.String(), JsonSerde.from(RequestCreditReportEvent.class));
 
-    KStream<String, Applicant> persons = KafkaStreamTypeValidator
-        .validatedStream(builder, Const.PERSON_LA_TOPIC, Serdes.String(), JsonSerde.from(Applicant.class))
+    //Behövs inte, redan på personkey
+//    KafkaStreamTypeValidator
+//        .validatedStream(builder, Const.PERSON_LA_TOPIC, Serdes.String(), applicantSerde)
+//
+//        // Nyckla om på personKey
+//        .selectKey((key1, value1) -> PersonKey.from(value1.getPersonId()))
+//
+//        // Skicka ut på ny topic
+//        .to(Const.PERSON_KEY_LA_TOPIC, Produced.with(Serdes.String(), applicantSerde));
 
-        // Nyckla om på personKey
-        .selectKey((key1, value1) -> PersonKey.from(value1.getPersonId()));
+    //Skapa lookup tabell
+    KTable<String, Applicant> applicantsTable = builder.table(Const.PERSON_LA_TOPIC,
+        Consumed.with(Serdes.String(), applicantSerde));
 
     //Key: PersonKey
-    KStream<String, CreditReport> reports = creditEvent.join(persons, (eventValue, person) -> {
-      return creditReportService.fetchCreditReport(person.getPersonId());
-    }, JoinWindows.of(TimeUnit.MINUTES.toMillis(1))
-    , Joined.with(Serdes.String(), JsonSerde.from(RequestCreditReportEvent.class), JsonSerde.from(Applicant.class)));
+//    KStream<String, CreditReport> reports = creditEvent.join(persons, (eventValue, person) -> {
+//      return creditReportService.fetchCreditReport(person.getPersonId());
+//    }, JoinWindows.of(TimeUnit.MINUTES.toMillis(1))
+//    , Joined.with(Serdes.String(), JsonSerde.from(RequestCreditReportEvent.class), JsonSerde.from(Applicant.class)));
 
-    reports
-        // Bygg om till ny ström för låneflödet
-        .mapValues((value) -> {
-          CreditReportFetchedEvent event = new CreditReportFetchedEvent();
-          event.setId(UUID.randomUUID().toString());
-          event.setPersonKey(value.getPersonKey());
-          event.setCreditReport(value);
-          event.setForLoanAppl(null);
-          return event;
-        })
-        .to(Const.RESP_CREDIT_REPORT_TOPIC, Produced.with(Serdes.String(), JsonSerde.from(CreditReportFetchedEvent.class) ));
+    //TODO här behövs kodas lite...
+
+    KStream<String, Appclicant> applicantKStream = creditEvent.leftJoin(applicantsTable,
+        // Joiner
+        (reportEvent, applicant) -> {
+          log.info("For {}, got {}", reportEvent.getPersonKey(), applicant);
+          return applicant;
+        }, Joined
+            .with(Serdes.String(), JsonSerde.from(RequestCreditReportEvent.class), applicantSerde));
+
+
+//    reports
+//        // Bygg om till ny ström för låneflödet
+//        .mapValues((value) -> {
+//          CreditReportFetchedEvent event = new CreditReportFetchedEvent();
+//          event.setId(UUID.randomUUID().toString());
+//          event.setPersonKey(value.getPersonKey());
+//          event.setCreditReport(value);
+//          event.setForLoanAppl(null);
+//          return event;
+//        })
+//        .to(Const.RESP_CREDIT_REPORT_TOPIC, Produced.with(Serdes.String(), JsonSerde.from(CreditReportFetchedEvent.class) ));
 
 
     /////////////////

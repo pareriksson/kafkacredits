@@ -82,4 +82,16 @@ public class Applicant {
     return LocalDate.now().getYear() - dateOfBirth.getYear();
 
   }
+
+  @Override public String toString() {
+    final StringBuilder sb = new StringBuilder("Applicant{");
+    sb.append("firstName='").append(firstName).append('\'');
+    sb.append(", lastName='").append(lastName).append('\'');
+    sb.append(", personId='").append(personId).append('\'');
+    sb.append(", employmentType=").append(employmentType);
+    sb.append(", employer='").append(employer).append('\'');
+    sb.append(", salary=").append(salary);
+    sb.append('}');
+    return sb.toString();
+  }
 }

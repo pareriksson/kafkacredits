@@ -11,5 +11,10 @@ public class Const {
 
   // <PersonalId, Applicant>
   public static final String PERSON_LA_TOPIC = "person-loan-app";
+
+  // <PersonKey, Applicant>
+  public static final String PERSON_KEY_LA_TOPIC = "person-key-loan-app";
+
+
   public static final long CREDIT_REPORT_LATENCY_MS = 1000;
 }
